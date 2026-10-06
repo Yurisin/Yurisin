@@ -218,8 +218,8 @@ export function validateWorkflow(text) {
   requireText("cron: '17 6 * * 1'", 'missing-approved-schedule');
   requireText('permissions:\n  contents: read', 'missing-read-only-default');
   requireText('    permissions:\n      contents: write', 'missing-job-write-scope');
-  requireText('actions/checkout@v4', 'checkout-version');
-  requireText('actions/setup-node@v4', 'setup-node-version');
+  requireText('actions/checkout@v7', 'checkout-version');
+  requireText('actions/setup-node@v7', 'setup-node-version');
   requireText("node-version: '22'", 'node-version');
   requireText('persist-credentials: false', 'persistent-credentials');
   requireText('npm test', 'missing-tests');
@@ -235,8 +235,9 @@ export function validateWorkflow(text) {
   const secretRefs = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((match) => match[1]);
   if (secretRefs.some((name) => name !== 'PROFILE_STATS_TOKEN')) errors.push('extra-secret');
   if (!secretRefs.includes('PROFILE_STATS_TOKEN')) errors.push('missing-profile-secret');
+  if (/actions\/(?:checkout|setup-node)@v[1-6]\b/.test(text)) errors.push('deprecated-runtime-action');
   const actions = [...text.matchAll(/uses:\s*([^\s]+)/g)].map((match) => match[1]);
-  if (actions.some((action) => !['actions/checkout@v4', 'actions/setup-node@v4'].includes(action))) errors.push('unapproved-action');
+  if (actions.some((action) => !['actions/checkout@v7', 'actions/setup-node@v7'].includes(action))) errors.push('unapproved-action');
   return [...new Set(errors)];
 }
 

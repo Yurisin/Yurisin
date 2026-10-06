@@ -119,3 +119,9 @@ test('workflow policy rejects npm cache when the dependency-free repository has 
 
   assert.match(validateWorkflow(withUnsupportedCache).join(' '), /cache-without-lockfile/);
 });
+
+test('workflow policy rejects action releases that still target the deprecated Node 20 runtime', async () => {
+  const workflow = await optionalFile('.github/workflows/update-profile-stats.yml');
+  const deprecated = workflow.replaceAll('@v7', '@v4');
+  assert.match(validateWorkflow(deprecated).join(' '), /deprecated-runtime-action/);
+});
