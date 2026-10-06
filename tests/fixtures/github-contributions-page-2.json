@@ -1,0 +1,26 @@
+{
+  "data": {
+    "user": {
+      "contributionsCollection": {
+        "totalCommitContributions": 120,
+        "totalPullRequestContributions": 18,
+        "totalIssueContributions": 9,
+        "restrictedContributionsCount": 42
+      },
+      "repositories": {
+        "nodes": [
+          {
+            "languages": {
+              "edges": [
+                { "size": 500, "node": { "name": "TypeScript", "color": "#3178C6" } },
+                { "size": 200, "node": { "name": "JavaScript", "color": "#F1E05A" } }
+              ]
+            }
+          }
+        ],
+        "pageInfo": { "hasNextPage": false, "endCursor": null }
+      }
+    }
+  }
+}
+

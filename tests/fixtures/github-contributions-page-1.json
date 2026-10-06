@@ -1,0 +1,26 @@
+{
+  "data": {
+    "user": {
+      "contributionsCollection": {
+        "totalCommitContributions": 120,
+        "totalPullRequestContributions": 18,
+        "totalIssueContributions": 9,
+        "restrictedContributionsCount": 42
+      },
+      "repositories": {
+        "nodes": [
+          {
+            "languages": {
+              "edges": [
+                { "size": 700, "node": { "name": "TypeScript", "color": "#3178C6" } },
+                { "size": 300, "node": { "name": "Python", "color": "#3572A5" } }
+              ]
+            }
+          }
+        ],
+        "pageInfo": { "hasNextPage": true, "endCursor": "cursor-2" }
+      }
+    }
+  }
+}
+

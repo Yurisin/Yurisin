@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
+import { validateSvg } from './render-profile-svg.mjs';
+
 const PRIVATE_IP = /\b(?:10\.(?:\d{1,3}\.){2}\d{1,3}|127\.(?:\d{1,3}\.){2}\d{1,3}|169\.254\.(?:\d{1,3}\.)\d{1,3}|192\.168\.(?:\d{1,3}\.)\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.(?:\d{1,3}\.)\d{1,3})\b/i;
 const CREDENTIAL = /\b(?:token|secret|password|api[_-]?key)\s*[:=]\s*[^\s`]+/i;
 
@@ -236,6 +238,12 @@ async function runCli(mode) {
     const en = files.find(([name]) => name === 'README.en.md')?.[1];
     if (!pt || !en) errors.push('parity: both README files are required');
     else errors.push(...validateParity(pt, en).map((error) => `parity: ${error}`));
+  }
+  if (mode === 'svg' || mode === 'all') {
+    for (const [name, text] of files) {
+      if (name === 'profile/stats.svg') errors.push(...validateSvg(text, 'stats').map((error) => `${name}: ${error}`));
+      if (name === 'profile/top-langs.svg') errors.push(...validateSvg(text, 'top-langs').map((error) => `${name}: ${error}`));
+    }
   }
   if (!['privacy', 'links', 'content', 'parity', 'svg', 'workflow', 'all'].includes(mode)) {
     errors.push(`unknown validation mode: ${mode}`);

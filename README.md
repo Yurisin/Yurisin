@@ -136,11 +136,7 @@ O método começa pelo processo, aplica agentes, automações e integrações on
 
 ![Sequência de contribuições públicas no GitHub](https://streak-stats.demolab.com?user=Yurisin&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=3FB950&currStreakLabel=C9D1D9)
 
-![Estatísticas agregadas do GitHub](./profile/stats.svg)
-
-![Distribuição agregada de linguagens](./profile/top-langs.svg)
-
-As linguagens representam a distribuição de código detectada nos repositórios analisados; não são uma medida de proficiência.
+Quando os cards agregados estiverem disponíveis, as linguagens representarão a distribuição de código detectada nos repositórios analisados; não são uma medida de proficiência.
 
 <!-- section:cta -->
 ## Vamos construir sistemas mais inteligentes?

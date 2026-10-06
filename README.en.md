@@ -136,11 +136,7 @@ The method starts with the process, applies agents, automation, and integrations
 
 ![Public GitHub contribution streak](https://streak-stats.demolab.com?user=Yurisin&theme=github-dark-blue&hide_border=true&background=0D1117&ring=58A6FF&fire=3FB950&currStreakLabel=C9D1D9)
 
-![Aggregate GitHub statistics](./profile/stats.svg)
-
-![Aggregate language distribution](./profile/top-langs.svg)
-
-Languages represent the distribution of code detected in the analyzed repositories; they are not a measure of proficiency.
+When aggregate cards become available, languages will represent the distribution of code detected in the analyzed repositories; they are not a measure of proficiency.
 
 <!-- section:cta -->
 ## Let's build smarter systems
