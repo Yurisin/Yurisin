@@ -160,6 +160,49 @@ export function validateContent(text, locale) {
   return [...new Set(errors)];
 }
 
+const TECHNOLOGY_PATTERNS = [
+  ['claude', /\bClaude\b/i], ['openai-codex', /OpenAI.{0,12}Codex/i], ['gemini', /\bGemini\b/i],
+  ['openrouter', /\bOpenRouter\b/i], ['orca-ide', /\bOrca IDE\b/i],
+  ['autonomous-agents', /Agentes autônomos|Autonomous agents/i], ['mcp', /\bMCP\b/],
+  ['rag', /\bRAG\b/], ['embeddings', /\bEmbeddings\b/i], ['pgvector', /\bpgvector\b/i],
+  ['n8n', /\bn8n\b/i], ['apify', /\bApify\b/i], ['playwright', /\bPlaywright\b/i],
+  ['webhooks', /\bWebhooks\b/i], ['rest-apis', /REST APIs/i], ['typescript', /\bTypeScript\b/i],
+  ['python', /\bPython\b/i], ['nodejs', /\bNode\.js\b/i], ['nextjs', /\bNext\.js\b/i],
+  ['react', /\bReact\b/i], ['fastapi', /\bFastAPI\b/i], ['express', /\bExpress\b/i],
+  ['postgresql', /\bPostgreSQL\b/i], ['supabase', /\bSupabase\b/i], ['redis', /\bRedis\b/i],
+  ['docker', /\bDocker\b/i], ['vercel', /\bVercel\b/i], ['github-actions', /GitHub Actions/i],
+];
+const CONTACT_URLS = ['https://alemaodev.com/', 'https://www.linkedin.com/in/yurisinn/', 'https://www.instagram.com/alemaodev'];
+
+export function extractProfileModel(text, locale) {
+  const markerValues = (kind) => [...text.matchAll(new RegExp(`<!--\\s*${kind}:([a-z0-9-]+)\\s*-->`, 'gi'))].map((match) => match[1]);
+  const methodEdges = [...text.matchAll(/\b([A-F])(?:\[[^\]]+\])?\s*-->\s*([A-F])(?:\[[^\]]+\])?/g)].map((match) => `${match[1]}>${match[2]}`);
+  const localImagePaths = [...text.matchAll(/!\[[^\]]*\]\((\.\/profile\/[^)]+)\)/g)].map((match) => match[1]);
+  return {
+    sectionIds: markerValues('section'),
+    capabilityIds: markerValues('capability'),
+    methodEdges,
+    technologies: TECHNOLOGY_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(([id]) => id),
+    caseIds: markerValues('case'),
+    contactUrls: CONTACT_URLS.filter((url) => text.includes(url)),
+    imagePaths: localImagePaths,
+    hasTopLanguagesDisclaimer: locale === 'pt-BR'
+      ? /não (?:são|é) uma medida de proficiência/i.test(text)
+      : /not a measure of proficiency/i.test(text),
+  };
+}
+
+export function validateParity(ptText, enText) {
+  const pt = extractProfileModel(ptText, 'pt-BR');
+  const en = extractProfileModel(enText, 'en-US');
+  const errors = [];
+  for (const key of ['sectionIds', 'capabilityIds', 'methodEdges', 'technologies', 'caseIds', 'contactUrls', 'imagePaths']) {
+    if (JSON.stringify(pt[key]) !== JSON.stringify(en[key])) errors.push(key);
+  }
+  if (!pt.hasTopLanguagesDisclaimer || !en.hasTopLanguagesDisclaimer) errors.push('top-languages-disclaimer');
+  return errors;
+}
+
 async function existingPublicFiles() {
   const candidates = ['README.md', 'README.en.md', 'profile/stats.svg', 'profile/top-langs.svg', '.github/workflows/update-profile-stats.yml', 'docs/profile-operations.md'];
   const found = [];
@@ -187,6 +230,12 @@ async function runCli(mode) {
       if (name === 'README.md') errors.push(...validateContent(text, 'pt-BR').map((error) => `${name}: ${error}`));
       if (name === 'README.en.md') errors.push(...validateContent(text, 'en-US').map((error) => `${name}: ${error}`));
     }
+  }
+  if (mode === 'parity' || mode === 'all') {
+    const pt = files.find(([name]) => name === 'README.md')?.[1];
+    const en = files.find(([name]) => name === 'README.en.md')?.[1];
+    if (!pt || !en) errors.push('parity: both README files are required');
+    else errors.push(...validateParity(pt, en).map((error) => `parity: ${error}`));
   }
   if (!['privacy', 'links', 'content', 'parity', 'svg', 'workflow', 'all'].includes(mode)) {
     errors.push(`unknown validation mode: ${mode}`);
