@@ -17,6 +17,12 @@ function configuredForbiddenTerms() {
 export function scanPrivacy(text, sourceName) {
   const findings = [];
   const add = (rule) => findings.push({ source: sourceName, rule });
+  const credentialScanText = text
+    .replace(
+      /^\s*(?:PROFILE_STATS_TOKEN|GITHUB_TOKEN):\s*\$\{\{\s*(?:secrets\.PROFILE_STATS_TOKEN|github\.token)\s*\}\}\s*$/gmi,
+      '',
+    )
+    .replace('https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git', 'SAFE_GITHUB_PUSH_URL');
 
   if (configuredForbiddenTerms().some((term) => text.toLocaleLowerCase().includes(term.toLocaleLowerCase()))) {
     add('forbidden-term');
@@ -25,7 +31,7 @@ export function scanPrivacy(text, sourceName) {
   if (/\bhttps?:\/\/(?:localhost|[^\s/]*\.(?:local|internal))\b/i.test(text) || /\bhttp:\/\//i.test(text)) {
     add('private-url');
   }
-  if (CREDENTIAL.test(text)) add('credential');
+  if (CREDENTIAL.test(credentialScanText)) add('credential');
 
   return findings;
 }
@@ -205,6 +211,34 @@ export function validateParity(ptText, enText) {
   return errors;
 }
 
+export function validateWorkflow(text) {
+  const errors = [];
+  const requireText = (needle, rule) => { if (!text.includes(needle)) errors.push(rule); };
+  requireText('workflow_dispatch:', 'missing-manual-trigger');
+  requireText("cron: '17 6 * * 1'", 'missing-approved-schedule');
+  requireText('permissions:\n  contents: read', 'missing-read-only-default');
+  requireText('    permissions:\n      contents: write', 'missing-job-write-scope');
+  requireText('actions/checkout@v4', 'checkout-version');
+  requireText('actions/setup-node@v4', 'setup-node-version');
+  requireText("node-version: '22'", 'node-version');
+  requireText('persist-credentials: false', 'persistent-credentials');
+  requireText('npm test', 'missing-tests');
+  requireText('npm run validate', 'missing-validation');
+  requireText('node scripts/update-profile-analytics.mjs', 'missing-generator');
+  requireText('git diff --quiet -- profile/stats.svg profile/top-langs.svg', 'unscoped-diff');
+  requireText('git add -- profile/stats.svg profile/top-langs.svg', 'unscoped-commit');
+  requireText('group: profile-stats', 'missing-concurrency-group');
+  requireText('cancel-in-progress: false', 'unsafe-concurrency');
+  if (/\bpull_request_target\s*:/i.test(text)) errors.push('unsafe-trigger');
+  if (/\b(?:write-all|actions:\s*write|administration:\s*write|secrets:\s*write)\b/i.test(text)) errors.push('broad-permissions');
+  const secretRefs = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((match) => match[1]);
+  if (secretRefs.some((name) => name !== 'PROFILE_STATS_TOKEN')) errors.push('extra-secret');
+  if (!secretRefs.includes('PROFILE_STATS_TOKEN')) errors.push('missing-profile-secret');
+  const actions = [...text.matchAll(/uses:\s*([^\s]+)/g)].map((match) => match[1]);
+  if (actions.some((action) => !['actions/checkout@v4', 'actions/setup-node@v4'].includes(action))) errors.push('unapproved-action');
+  return [...new Set(errors)];
+}
+
 async function existingPublicFiles() {
   const candidates = ['README.md', 'README.en.md', 'profile/stats.svg', 'profile/top-langs.svg', '.github/workflows/update-profile-stats.yml', 'docs/profile-operations.md'];
   const found = [];
@@ -244,6 +278,11 @@ async function runCli(mode) {
       if (name === 'profile/stats.svg') errors.push(...validateSvg(text, 'stats').map((error) => `${name}: ${error}`));
       if (name === 'profile/top-langs.svg') errors.push(...validateSvg(text, 'top-langs').map((error) => `${name}: ${error}`));
     }
+  }
+  if (mode === 'workflow' || mode === 'all') {
+    const workflow = files.find(([name]) => name === '.github/workflows/update-profile-stats.yml')?.[1];
+    if (!workflow) errors.push('workflow: file is required');
+    else errors.push(...validateWorkflow(workflow).map((error) => `workflow: ${error}`));
   }
   if (!['privacy', 'links', 'content', 'parity', 'svg', 'workflow', 'all'].includes(mode)) {
     errors.push(`unknown validation mode: ${mode}`);

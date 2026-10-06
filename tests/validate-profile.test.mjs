@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { scanPrivacy, validateContent, validateLinks } from '../scripts/validate-profile.mjs';
+import { scanPrivacy, validateContent, validateLinks, validateWorkflow } from '../scripts/validate-profile.mjs';
 
 const fixture = async (name) => readFile(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 const optionalFile = async (name) => {
@@ -93,4 +93,20 @@ test('EN-US content contract rejects missing language qualification', async () =
   const readme = await optionalFile('README.en.md');
   const mutated = readme.replace('not a measure of proficiency', 'technology expertise ranking');
   assert.notDeepEqual(validateContent(mutated, 'en-US'), []);
+});
+
+test('workflow policy accepts only the least-privilege analytics workflow', async () => {
+  const workflow = await optionalFile('.github/workflows/update-profile-stats.yml');
+  assert.deepEqual(validateWorkflow(workflow), []);
+});
+
+test('workflow policy rejects unsafe triggers, broad permissions, and extra secrets', async () => {
+  const workflow = await optionalFile('.github/workflows/update-profile-stats.yml');
+  const mutations = [
+    `${workflow}\npull_request_target:\n`,
+    workflow.replace('contents: write', 'contents: write\n      actions: write'),
+    `${workflow}\n      EXTRA: \${{ secrets.EXTRA_TOKEN }}\n`,
+    workflow.replace('profile/stats.svg profile/top-langs.svg', '.'),
+  ];
+  for (const mutation of mutations) assert.notDeepEqual(validateWorkflow(mutation), []);
 });

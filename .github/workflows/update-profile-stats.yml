@@ -1,0 +1,83 @@
+name: Update profile analytics
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+
+concurrency:
+  group: profile-stats
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-profile-stats:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out profile
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Test profile tooling
+        run: npm test
+
+      - name: Validate current profile
+        run: npm run validate
+
+      - name: Check dedicated analytics secret
+        id: analytics-secret
+        shell: bash
+        env:
+          PROFILE_STATS_TOKEN: ${{ secrets.PROFILE_STATS_TOKEN }}
+        run: |
+          if [[ -n "$PROFILE_STATS_TOKEN" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Dedicated analytics secret is not configured; keeping the last valid artifacts."
+          fi
+
+      - name: Generate aggregate analytics
+        if: steps.analytics-secret.outputs.configured == 'true'
+        env:
+          PROFILE_STATS_TOKEN: ${{ secrets.PROFILE_STATS_TOKEN }}
+        run: node scripts/update-profile-analytics.mjs
+
+      - name: Validate generated profile
+        if: steps.analytics-secret.outputs.configured == 'true'
+        run: npm run validate
+
+      - name: Detect analytics changes
+        if: steps.analytics-secret.outputs.configured == 'true'
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- profile/stats.svg profile/top-langs.svg; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit validated analytics
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- profile/stats.svg profile/top-langs.svg
+          git commit -m "chore: update profile analytics"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+
