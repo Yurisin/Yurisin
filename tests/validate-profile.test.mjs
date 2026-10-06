@@ -83,3 +83,14 @@ test('PT-BR content remains understandable without external images', async () =>
     assert.match(textOnly, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });
+
+test('EN-US content contract accepts the equivalent profile', async () => {
+  const readme = await optionalFile('README.en.md');
+  assert.deepEqual(validateContent(readme, 'en-US'), []);
+});
+
+test('EN-US content contract rejects missing language qualification', async () => {
+  const readme = await optionalFile('README.en.md');
+  const mutated = readme.replace('not a measure of proficiency', 'technology expertise ranking');
+  assert.notDeepEqual(validateContent(mutated, 'en-US'), []);
+});

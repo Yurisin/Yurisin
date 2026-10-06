@@ -92,6 +92,38 @@ const PT_REQUIRED = [
   'Conheça meu trabalho',
   'PT-BR · EN-US · UTC-3',
 ];
+const EN_REQUIRED = [
+  '[Português](./README.md) | English',
+  'Alemão Dev',
+  'Head of Technology and Automation @ WZ Soluções',
+  'manual processes into scalable systems',
+  'https://alemaodev.com/',
+  'https://www.linkedin.com/in/yurisinn/',
+  'https://www.instagram.com/alemaodev',
+  'AI agents and applied AI',
+  'Process automation',
+  'Integrations and APIs',
+  'Product engineering',
+  'Agent-assisted operations',
+  'A[Manual process] --> B[Mapping]',
+  'B --> C[Agents and automation]',
+  'C --> D[Integrations and APIs]',
+  'D --> E[Validation and observability]',
+  'E --> F[Scalable operation]',
+  'AI, agents, and knowledge',
+  'Automation, data, and browser workflows',
+  'Engineering',
+  'Data, infrastructure, and delivery',
+  'Autoposter',
+  'Viralizer',
+  'RAG Consultant Agent',
+  'Automated Finance Manager',
+  'Private project — sanitized overview',
+  'distribution of code detected',
+  'not a measure of proficiency',
+  'Explore my work',
+  'PT-BR · EN-US · UTC-3',
+];
 
 function validateSectionOrder(text, errors) {
   let previous = -1;
@@ -106,7 +138,7 @@ function validateSectionOrder(text, errors) {
 export function validateContent(text, locale) {
   const errors = [];
   validateSectionOrder(text, errors);
-  const required = locale === 'pt-BR' ? PT_REQUIRED : [];
+  const required = locale === 'pt-BR' ? PT_REQUIRED : locale === 'en-US' ? EN_REQUIRED : [];
   for (const phrase of required) {
     if (!text.includes(phrase)) errors.push(`missing-required:${phrase.slice(0, 32)}`);
   }
