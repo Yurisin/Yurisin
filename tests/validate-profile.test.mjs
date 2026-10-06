@@ -110,3 +110,12 @@ test('workflow policy rejects unsafe triggers, broad permissions, and extra secr
   ];
   for (const mutation of mutations) assert.notDeepEqual(validateWorkflow(mutation), []);
 });
+
+test('workflow policy rejects npm cache when the dependency-free repository has no lockfile', async () => {
+  const workflow = await optionalFile('.github/workflows/update-profile-stats.yml');
+  const withUnsupportedCache = workflow.includes('cache: npm')
+    ? workflow
+    : workflow.replace("node-version: '22'", "node-version: '22'\n          cache: npm");
+
+  assert.match(validateWorkflow(withUnsupportedCache).join(' '), /cache-without-lockfile/);
+});

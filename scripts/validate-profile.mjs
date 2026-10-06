@@ -231,6 +231,7 @@ export function validateWorkflow(text) {
   requireText('cancel-in-progress: false', 'unsafe-concurrency');
   if (/\bpull_request_target\s*:/i.test(text)) errors.push('unsafe-trigger');
   if (/\b(?:write-all|actions:\s*write|administration:\s*write|secrets:\s*write)\b/i.test(text)) errors.push('broad-permissions');
+  if (/^\s*cache:\s*npm\s*$/gmi.test(text)) errors.push('cache-without-lockfile');
   const secretRefs = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((match) => match[1]);
   if (secretRefs.some((name) => name !== 'PROFILE_STATS_TOKEN')) errors.push('extra-secret');
   if (!secretRefs.includes('PROFILE_STATS_TOKEN')) errors.push('missing-profile-secret');

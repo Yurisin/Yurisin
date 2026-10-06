@@ -27,7 +27,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
       - name: Test profile tooling
         run: npm test
@@ -80,4 +79,3 @@ jobs:
           git add -- profile/stats.svg profile/top-langs.svg
           git commit -m "chore: update profile analytics"
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
-
