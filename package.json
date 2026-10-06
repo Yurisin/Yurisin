@@ -1,0 +1,20 @@
+{
+  "name": "yurisin-profile",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate:privacy": "node scripts/validate-profile.mjs privacy",
+    "validate:links": "node scripts/validate-profile.mjs links",
+    "validate:content": "node scripts/validate-profile.mjs content",
+    "validate:parity": "node scripts/validate-profile.mjs parity",
+    "validate:svg": "node scripts/validate-profile.mjs svg",
+    "validate:workflow": "node scripts/validate-profile.mjs workflow",
+    "validate": "node scripts/validate-profile.mjs all"
+  }
+}
+

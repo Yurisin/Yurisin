@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+coverage/
+.tmp/
+tmp/
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+docs/superpowers/
+ds-bundle/
+.superpowers/
+
