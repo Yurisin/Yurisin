@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { scanPrivacy, validateContent, validateLinks, validateWorkflow } from '../scripts/validate-profile.mjs';
+import { listPrivacyFiles, scanPrivacy, validateContent, validateLinks, validateWorkflow } from '../scripts/validate-profile.mjs';
 
 const fixture = async (name) => readFile(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 const optionalFile = async (name) => {
@@ -25,6 +25,14 @@ test('privacy scanner rejects forbidden terms, private URLs, IPs, and credential
   assert.match(rules.join(' '), /private-url/);
   assert.match(rules.join(' '), /ip-address/);
   assert.match(rules.join(' '), /credential/);
+});
+
+test('privacy gate scans tracked implementation files but excludes local planning documents', async () => {
+  const files = (await listPrivacyFiles()).map(([name]) => name);
+  assert.ok(files.includes('README.md'));
+  assert.ok(files.includes('scripts/github-analytics.mjs'));
+  assert.ok(files.includes('.github/workflows/update-profile-stats.yml'));
+  assert.ok(files.every((name) => !name.startsWith('docs/superpowers/')));
 });
 
 test('link validator accepts approved HTTPS links', () => {

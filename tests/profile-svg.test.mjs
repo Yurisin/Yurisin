@@ -26,6 +26,11 @@ test('renderers produce deterministic, self-contained, safe SVGs', () => {
   }
 });
 
+test('stats card labels contribution aggregates as a rolling twelve-month window', () => {
+  const svg = renderStatsSvg(analytics);
+  assert.match(svg, /last 12 months/i);
+});
+
 test('top languages explains distribution and handles empty aggregate data', () => {
   assert.match(renderTopLangsSvg(analytics), /Detected code distribution — not proficiency/);
   const empty = renderTopLangsSvg({ ...analytics, languages: [] });

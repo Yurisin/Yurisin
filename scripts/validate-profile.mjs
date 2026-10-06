@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 import { validateSvg } from './render-profile-svg.mjs';
 
@@ -33,6 +34,29 @@ export function scanPrivacy(text, sourceName) {
   }
   if (CREDENTIAL.test(credentialScanText)) add('credential');
 
+  return findings;
+}
+
+export async function listPrivacyFiles() {
+  const names = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+  return Promise.all(names.map(async (name) => [name, await readFile(name, 'utf8')]));
+}
+
+function scanTrackedPrivacy(text, sourceName) {
+  const findings = [];
+  const configuredTerms = (process.env.PROFILE_FORBIDDEN_TERMS ?? '').split(/[;,\n]/).map((term) => term.trim()).filter(Boolean);
+  if (configuredTerms.some((term) => text.toLocaleLowerCase().includes(term.toLocaleLowerCase()))) {
+    findings.push({ source: sourceName, rule: 'forbidden-term' });
+  }
+  const syntheticSources = new Set(['tests/fixtures/privacy-unsafe.md', 'tests/validate-profile.test.mjs', 'tests/profile-svg.test.mjs', 'tests/github-analytics.test.mjs']);
+  if (!syntheticSources.has(sourceName.replaceAll('\\', '/'))) {
+    const structuralText = text
+      .replaceAll('FORBIDDEN_CORPORATE_TERM', 'SAFE_SYNTHETIC_TERM')
+      .replaceAll('http://www.w3.org/2000/svg', 'SAFE_XML_NAMESPACE')
+      .replace('const token = process.env.PROFILE_STATS_TOKEN;', 'const analyticsCredential = SAFE_ENV_REFERENCE;');
+    findings.push(...scanPrivacy(structuralText, sourceName)
+      .filter(({ rule }) => rule !== 'forbidden-term'));
+  }
   return findings;
 }
 
@@ -258,7 +282,8 @@ async function runCli(mode) {
   const files = await existingPublicFiles();
   let errors = [];
   if (mode === 'privacy' || mode === 'all') {
-    errors.push(...files.flatMap(([name, text]) => scanPrivacy(text, name).map(({ source, rule }) => `${source}: ${rule}`)));
+    const privacyFiles = await listPrivacyFiles();
+    errors.push(...privacyFiles.flatMap(([name, text]) => scanTrackedPrivacy(text, name).map(({ source, rule }) => `${source}: ${rule}`)));
   }
   if (mode === 'links' || mode === 'all') {
     errors.push(...files.flatMap(([name, text]) => validateLinks(text, name)));

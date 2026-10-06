@@ -28,7 +28,7 @@ export function renderStatsSvg(data) {
     const y = 70 + index * 28;
     return `<text x="24" y="${y}">${escapeXml(label)}</text><text x="396" y="${y}" text-anchor="end" class="accent">${escapeXml(value)}</text>`;
   }).join('\n  ');
-  return frame(420, 175, 'GitHub activity — aggregate totals', body);
+  return frame(420, 175, 'GitHub activity — last 12 months', body);
 }
 
 function normalizedLanguages(languages) {
@@ -67,4 +67,3 @@ export function validateSvg(svg, kind) {
   if (kind === 'top-langs' && !/Detected code distribution — not proficiency/.test(svg)) errors.push('missing-language-qualification');
   return [...new Set(errors)];
 }
-
