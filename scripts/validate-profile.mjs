@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
@@ -59,6 +59,75 @@ export function validateLinks(text, sourceName) {
   return [...new Set(errors)];
 }
 
+const SECTION_IDS = ['language', 'header', 'about', 'capabilities', 'method', 'stack', 'cases', 'analytics', 'cta', 'footer'];
+const PT_REQUIRED = [
+  'Português | [English](./README.en.md)',
+  'Alemão Dev',
+  'Head de Tecnologia e Automação @ WZ Soluções',
+  'processos manuais em sistemas escaláveis',
+  'https://alemaodev.com/',
+  'https://www.linkedin.com/in/yurisinn/',
+  'https://www.instagram.com/alemaodev',
+  'Agentes e IA aplicada',
+  'Automação de processos',
+  'Integrações e APIs',
+  'Engenharia de produto',
+  'Operação assistida por agentes',
+  'A[Processo manual] --> B[Mapeamento]',
+  'B --> C[Agentes e automações]',
+  'C --> D[Integrações e APIs]',
+  'D --> E[Validação e observabilidade]',
+  'E --> F[Operação escalável]',
+  'IA, agentes e conhecimento',
+  'Automação, dados e navegação',
+  'Engenharia',
+  'Dados, infraestrutura e entrega',
+  'Autoposter',
+  'Viralizer',
+  'Agente Consultor RAG',
+  'Gestor Financeiro Automatizado',
+  'Projeto privado — descrição sanitizada',
+  'distribuição de código detectada',
+  'não são uma medida de proficiência',
+  'Conheça meu trabalho',
+  'PT-BR · EN-US · UTC-3',
+];
+
+function validateSectionOrder(text, errors) {
+  let previous = -1;
+  for (const id of SECTION_IDS) {
+    const current = text.indexOf(`<!-- section:${id} -->`);
+    if (current < 0) errors.push(`missing-section:${id}`);
+    else if (current <= previous) errors.push(`section-order:${id}`);
+    previous = current;
+  }
+}
+
+export function validateContent(text, locale) {
+  const errors = [];
+  validateSectionOrder(text, errors);
+  const required = locale === 'pt-BR' ? PT_REQUIRED : [];
+  for (const phrase of required) {
+    if (!text.includes(phrase)) errors.push(`missing-required:${phrase.slice(0, 32)}`);
+  }
+  if (!['pt-BR', 'en-US'].includes(locale)) errors.push('unsupported-locale');
+
+  const caseCount = (text.match(/(?:Projeto privado — descrição sanitizada|Private project — sanitized overview)/g) ?? []).length;
+  if (caseCount !== 4) errors.push('private-case-count');
+  if (/^###\s*\[[^\]]*(?:Autoposter|Viralizer|Agente Consultor RAG|Gestor Financeiro Automatizado)[^\]]*\]/im.test(text)) {
+    errors.push('linked-private-case-heading');
+  }
+  if (/\[(?:Projeto privado|Private project)[^\]]*\]\(https?:\/\//i.test(text)) errors.push('private-case-link');
+  if (/\b(?:São Paulo|Rio de Janeiro|cidade|city)\b/i.test(text)) errors.push('city-not-allowed');
+  if (/\b(?:impacto|escala|scale|SLA|certifica(?:ção|ções)|certifications?)\b[^\n]{0,48}\b\d+(?:[.,]\d+)?\s*%/i.test(text)) {
+    errors.push('unverified-numeric-claim');
+  }
+  for (const image of text.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)) {
+    if (!image[1].trim()) errors.push('missing-image-alt');
+  }
+  return [...new Set(errors)];
+}
+
 async function existingPublicFiles() {
   const candidates = ['README.md', 'README.en.md', 'profile/stats.svg', 'profile/top-langs.svg', '.github/workflows/update-profile-stats.yml', 'docs/profile-operations.md'];
   const found = [];
@@ -80,6 +149,12 @@ async function runCli(mode) {
   }
   if (mode === 'links' || mode === 'all') {
     errors.push(...files.flatMap(([name, text]) => validateLinks(text, name)));
+  }
+  if (mode === 'content' || mode === 'all') {
+    for (const [name, text] of files) {
+      if (name === 'README.md') errors.push(...validateContent(text, 'pt-BR').map((error) => `${name}: ${error}`));
+      if (name === 'README.en.md') errors.push(...validateContent(text, 'en-US').map((error) => `${name}: ${error}`));
+    }
   }
   if (!['privacy', 'links', 'content', 'parity', 'svg', 'workflow', 'all'].includes(mode)) {
     errors.push(`unknown validation mode: ${mode}`);
